@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -317,7 +318,8 @@ let audioCtx=null;
 
 const state={
   ranges:[], difficulty:2, original:[], queue:[], current:null, total:0, solved:0,
-  passEvents:0, passWords:new Map(), retryRound:false, input:[], buttons:[], awaitingNext:false
+  passEvents:0, passWords:new Map(), wrongEvents:0, wrongWords:new Map(),
+  retryRound:false, input:[], buttons:[], awaitingNext:false, spellingMistakes:0
 };
 
 const HOMOPHONES = [
@@ -374,6 +376,8 @@ async function beginGame(){
   state.solved=0;
   state.passEvents=0;
   state.passWords=new Map();
+  state.wrongEvents=0;
+  state.wrongWords=new Map();
   state.retryRound=false;
   state.awaitingNext=false;
 
@@ -417,6 +421,7 @@ function loadNext(){
 
   state.current=state.queue.shift();
   state.input=[]; state.buttons=[];
+  state.spellingMistakes=0;
 
   els.meaning.textContent=state.current.meaning;
   els.stageLabel.textContent="뜻을 보고 영어 단어를 말해 보세요.";
@@ -427,6 +432,8 @@ function loadNext(){
   els.feedback.className="feedback";
   els.feedback.textContent="영어 단어 철자는 아직 보이지 않습니다.";
   els.passBtn.disabled=false;
+  els.undoBtn.disabled=false;
+  els.resetBtn.disabled=false;
   els.spellArea.classList.add("hidden");
   els.answerBox.classList.add("hidden");
   updateStats();
@@ -540,10 +547,17 @@ function chooseLetter(id,el){
     if(state.input.length===state.current.word.length) spellingSuccess();
   }else{
     tone("wrong");
+    state.spellingMistakes++;
     el.classList.add("wrong");
-    els.spellFeedback.className="feedback bad";
-    els.spellFeedback.textContent="다른 철자예요. 다시 생각해 보세요.";
     setTimeout(()=>el.classList.remove("wrong"),300);
+
+    if(state.spellingMistakes >= 2){
+      spellingFail();
+      return;
+    }
+
+    els.spellFeedback.className="feedback warn";
+    els.spellFeedback.textContent="한 번 틀렸어요. 한 번 더 틀리면 오답으로 처리됩니다.";
   }
 }
 
@@ -568,6 +582,43 @@ function resetLetters(){
   state.input=[];state.buttons.forEach(b=>b.used=false);
   [...els.bank.children].forEach(x=>x.classList.remove("used","wrong"));
   updateSlots();
+}
+
+function spellingFail(){
+  state.awaitingNext=true;
+  state.wrongEvents++;
+
+  const key=state.current.word;
+  const rec=state.wrongWords.get(key)||{
+    word:state.current.word,
+    meaning:state.current.meaning,
+    count:0
+  };
+  rec.count++;
+  state.wrongWords.set(key,rec);
+
+  // 오답 단어는 마지막에 다시 풀도록 대기열 뒤에 추가
+  state.queue.push({...state.current, retry:true});
+  state.retryRound=true;
+
+  els.spellFeedback.className="feedback bad";
+  els.spellFeedback.textContent="두 번 틀려 오답으로 처리됐어요. 이 단어는 마지막에 다시 나옵니다.";
+
+  // 더 이상 철자를 누르지 못하게 하고 정답을 보여 줌
+  [...els.bank.querySelectorAll(".letter")].forEach(btn=>btn.disabled=true);
+  els.undoBtn.disabled=true;
+  els.resetBtn.disabled=true;
+
+  els.answerWord.textContent=state.current.word;
+  els.answerMeaning.textContent=state.current.meaning;
+  els.answerBox.classList.remove("hidden");
+  els.nextBtn.textContent="다음 단어 →";
+
+  tone("wrong");
+  speak(state.current.word);
+  updateStats();
+
+  setTimeout(()=>els.answerBox.scrollIntoView({behavior:"smooth",block:"nearest"}),80);
 }
 
 function spellingSuccess(){
@@ -610,13 +661,27 @@ function finishGame(){
   els.game.classList.add("hidden");
   els.finish.classList.remove("hidden");
   els.finishCount.textContent=`${state.solved}개`;
-  els.finishSummary.innerHTML=`선택한 범위의 <b>${state.total}개 단어를 모두 완료</b>했습니다.<br>패스 버튼을 누른 횟수는 ${state.passEvents}회입니다.`;
-  const list=[...state.passWords.values()].sort((a,b)=>b.count-a.count);
+  els.finishSummary.innerHTML=`선택한 범위의 <b>${state.total}개 단어를 모두 완료</b>했습니다.<br>패스 ${state.passEvents}회 · 철자 오답 ${state.wrongEvents}회입니다.`;
+  const reviewMap=new Map();
+  for(const x of state.passWords.values()){
+    reviewMap.set(x.word,{word:x.word,meaning:x.meaning,pass:x.count,wrong:0});
+  }
+  for(const x of state.wrongWords.values()){
+    const prev=reviewMap.get(x.word)||{word:x.word,meaning:x.meaning,pass:0,wrong:0};
+    prev.wrong=x.count;
+    reviewMap.set(x.word,prev);
+  }
+  const list=[...reviewMap.values()].sort((a,b)=>(b.pass+b.wrong)-(a.pass+a.wrong));
   if(list.length){
     els.reviewWrap.innerHTML=`<div class="review-title">처음에 어려웠던 단어</div>`+
-      list.map(x=>`<div class="review-item"><b>${escapeHtml(x.word)} · ${escapeHtml(x.meaning)}</b><span>패스 ${x.count}회</span></div>`).join("");
+      list.map(x=>{
+        const parts=[];
+        if(x.pass) parts.push(`패스 ${x.pass}회`);
+        if(x.wrong) parts.push(`오답 ${x.wrong}회`);
+        return `<div class="review-item"><b>${escapeHtml(x.word)} · ${escapeHtml(x.meaning)}</b><span>${parts.join(" · ")}</span></div>`;
+      }).join("");
   }else{
-    els.reviewWrap.innerHTML=`<div class="feedback good" style="margin-top:16px">패스 없이 모두 풀었어요!</div>`;
+    els.reviewWrap.innerHTML=`<div class="feedback good" style="margin-top:16px">패스나 철자 오답 없이 모두 풀었어요!</div>`;
   }
   tone("finish");
 }
