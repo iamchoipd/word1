@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#ffffff">
+<title>뜻 보고 말하고 철자 맞추기</title>
+<style>
+:root{
+  --bg:#f5f7fb; --card:#fff; --text:#172033; --muted:#667085; --line:#dbe2ea;
+  --blue:#2563eb; --blue2:#eaf2ff; --green:#15803d; --green2:#dcfce7;
+  --red:#dc2626; --red2:#fee2e2; --amber:#a16207; --amber2:#fef3c7;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif}
+button,select,input{font:inherit}
+button{touch-action:manipulation}
+body{padding-bottom:env(safe-area-inset-bottom)}
+.hidden{display:none!important}
+
+.app{max-width:620px;margin:0 auto;min-height:100%;padding:14px 14px 30px}
+.header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.brand{font-weight:950;font-size:18px;line-height:1.2;flex:1}
+.icon-btn{border:0;background:#e9eef5;color:#334155;border-radius:12px;min-width:44px;height:44px;font-weight:900}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px;
+  box-shadow:0 8px 25px rgba(15,23,42,.06)}
+.setup-title{font-size:27px;font-weight:950;margin:2px 0 7px}
+.setup-desc{color:var(--muted);line-height:1.55;margin-bottom:16px}
+.label{font-size:13px;font-weight:900;color:#475467;margin:15px 0 8px}
+.select{width:100%;min-height:48px;border:1px solid #cbd5e1;border-radius:13px;background:#fff;padding:0 12px;font-weight:800}
+
+.range-actions{display:flex;gap:7px;margin-bottom:8px}
+.small-btn{border:0;border-radius:10px;background:#e9eef5;color:#344054;padding:8px 11px;font-size:13px;font-weight:900}
+.range-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.range{position:relative}
+.range input{position:absolute;opacity:0;pointer-events:none}
+.range label{display:flex;min-height:45px;align-items:center;justify-content:center;border:2px solid var(--line);
+  border-radius:12px;background:#fff;font-weight:950}
+.range input:checked+label{border-color:var(--blue);background:var(--blue2);color:#1d4ed8}
+
+.notice{margin-top:14px;border-radius:14px;background:#eff6ff;color:#1e3a8a;padding:11px 12px;font-size:13px;line-height:1.55}
+.notice.warn{background:var(--amber2);color:#854d0e}
+.primary{width:100%;min-height:54px;border:0;border-radius:15px;background:var(--blue);color:white;font-size:17px;font-weight:950;margin-top:16px}
+.primary:disabled{opacity:.45}
+
+.topstats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px}
+.stat{background:white;border:1px solid var(--line);border-radius:13px;padding:9px 6px;text-align:center}
+.stat b{display:block;font-size:17px}
+.stat span{display:block;color:var(--muted);font-size:11px;font-weight:800;margin-top:2px}
+.progress{height:8px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin-bottom:14px}
+.progress>div{height:100%;background:var(--blue);width:0;transition:width .25s}
+
+.stage{font-size:12px;color:#64748b;font-weight:950;letter-spacing:.02em}
+.meaning{font-size:clamp(38px,12vw,62px);font-weight:1000;line-height:1.12;text-align:center;
+  word-break:keep-all;padding:22px 6px 18px}
+.sub{font-size:14px;color:var(--muted);text-align:center;font-weight:800;min-height:22px}
+
+.mic-wrap{display:flex;flex-direction:column;align-items:center;margin:15px 0 8px}
+.mic{width:108px;height:108px;border-radius:50%;border:0;background:#111827;color:#fff;font-size:43px;
+  box-shadow:0 9px 24px rgba(17,24,39,.18);font-weight:900}
+.mic.listening{animation:pulse 1s infinite;background:#b91c1c}
+@keyframes pulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(220,38,38,.25)}
+50%{transform:scale(1.035);box-shadow:0 0 0 15px rgba(220,38,38,0)}}
+.mic-text{font-size:13px;color:var(--muted);font-weight:850;margin-top:9px;text-align:center}
+
+.feedback{min-height:48px;border-radius:13px;padding:11px 12px;margin-top:12px;display:flex;align-items:center;
+  justify-content:center;text-align:center;font-weight:900;line-height:1.45;background:#f1f5f9;color:#475569}
+.feedback.good{background:var(--green2);color:var(--green)}
+.feedback.bad{background:var(--red2);color:var(--red)}
+.feedback.warn{background:var(--amber2);color:var(--amber)}
+
+.pass{width:100%;min-height:48px;border:1px solid #cbd5e1;background:#fff;border-radius:13px;color:#475569;
+  font-weight:950;margin-top:10px}
+
+.spell{margin-top:17px;padding-top:15px;border-top:1px dashed #cbd5e1}
+.word-heard{text-align:center;margin-bottom:10px}
+.word-heard .ok{display:inline-flex;align-items:center;gap:6px;background:var(--green2);color:var(--green);
+  border-radius:999px;padding:7px 11px;font-size:13px;font-weight:950}
+.speaker{border:0;background:#111827;color:#fff;border-radius:12px;min-height:45px;padding:0 14px;font-weight:950;margin-top:9px}
+
+.slots{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:16px 0 13px;min-height:48px}
+.slot{width:38px;height:44px;border:2px solid #cbd5e1;border-radius:10px;background:#fff;display:flex;align-items:center;
+  justify-content:center;font-size:25px;font-weight:1000;text-transform:lowercase}
+.slot.on{border-color:#60a5fa;background:#eff6ff;color:#1d4ed8}
+
+.bank{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.letter{width:49px;height:49px;border:2px solid #cbd5e1;border-radius:13px;background:#fff;font-size:25px;font-weight:1000;
+  box-shadow:0 3px 0 #cbd5e1}
+.letter.used{visibility:hidden}
+.letter.wrong{background:var(--red2);border-color:#f87171;color:#b91c1c;animation:shake .22s linear}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.edit-row{display:flex;gap:8px;margin-top:12px}
+.edit-row button{flex:1;min-height:43px;border:0;border-radius:11px;background:#e9eef5;color:#344054;font-weight:900}
+
+.answer{margin-top:15px;text-align:center;background:#f8fafc;border-radius:15px;padding:13px}
+.answer-word{font-size:34px;font-weight:1000;color:#1d4ed8}
+.answer-meaning{font-weight:850;color:#475569;margin-top:2px}
+.next{width:100%;min-height:51px;border:0;border-radius:13px;background:var(--blue);color:#fff;font-weight:950;margin-top:11px}
+
+.finish{text-align:center}
+.finish h2{font-size:28px;margin:4px 0 8px}
+.bigscore{font-size:45px;font-weight:1000;color:#1d4ed8}
+.summary{color:#475569;font-weight:850;line-height:1.8}
+.review-title{text-align:left;font-weight:950;margin:18px 0 8px}
+.review-item{display:flex;align-items:center;gap:8px;text-align:left;border:1px solid var(--line);border-radius:12px;
+  background:#f8fafc;padding:10px;margin-top:7px}
+.review-item b{flex:1}
+.review-item span{color:#64748b;font-size:13px}
+.countdown{position:fixed;inset:0;background:rgba(15,23,42,.82);display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:120px;font-weight:1000;z-index:50}
+
+@media (max-width:360px){
+ .app{padding:10px 10px 24px}.card{padding:14px}.meaning{font-size:40px}.mic{width:96px;height:96px}
+ .slot{width:35px;height:42px}.letter{width:46px;height:48px}.range-grid{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="brand">뜻 보고 말하고 철자 맞추기</div>
+    <button class="icon-btn hidden" id="homeBtn" aria-label="설정으로">⚙️</button>
+  </div>
+
+  <section id="setup" class="card">
+    <div class="setup-title">학습 범위를 골라 주세요</div>
+    <div class="setup-desc">
+      선택한 범위의 단어를 <b>끝까지 모두</b> 풉니다.
+      모르는 단어는 <b>패스</b>할 수 있고, 패스한 단어는 마지막에 다시 나옵니다.
+    </div>
+
+    <div class="label">단어 범위 (46~57)</div>
+    <div class="range-actions">
+      <button class="small-btn" id="allBtn" type="button">전체 선택</button>
+      <button class="small-btn" id="noneBtn" type="button">전체 해제</button>
+    </div>
+    <div class="range-grid" id="rangeGrid"></div>
+
+    <div class="label">철자 난이도</div>
+    <select id="difficulty" class="select">
+      <option value="1">1단계 · 정답 철자만</option>
+      <option value="2" selected>2단계 · 방해 철자 1개</option>
+      <option value="3">3단계 · 방해 철자 2개</option>
+      <option value="4">4단계 · 방해 철자 3개</option>
+      <option value="5">5단계 · 헷갈리는 철자 3개</option>
+    </select>
+
+    <div class="notice">
+      <b>진행 순서</b><br>
+      뜻 보기 → 🎤 영어 단어 말하기 → 음성인식 성공 → 철자 버튼 공개 → 철자 완성
+    </div>
+    <div class="notice warn" id="secureNotice">
+      마이크 음성인식은 모바일 브라우저에서 <b>HTTPS 주소</b>로 열었을 때 가장 안정적입니다.
+      GitHub Pages에 올려 사용하는 것을 권장합니다.
+    </div>
+
+    <button class="primary" id="startBtn" type="button">3초 후 시작</button>
+  </section>
+
+  <section id="game" class="hidden">
+    <div class="topstats">
+      <div class="stat"><b id="doneStat">0</b><span>완료</span></div>
+      <div class="stat"><b id="leftStat">0</b><span>남은 단어</span></div>
+      <div class="stat"><b id="passStat">0</b><span>패스</span></div>
+    </div>
+    <div class="progress"><div id="progressBar"></div></div>
+
+    <div class="card">
+      <div class="stage" id="stageLabel">뜻을 보고 영어 단어를 말해 보세요.</div>
+      <div class="meaning" id="meaning">사과</div>
+      <div class="sub" id="roundInfo"></div>
+
+      <div id="voiceArea">
+        <div class="mic-wrap">
+          <button class="mic" id="micBtn" type="button" aria-label="영어 단어 말하기">🎤</button>
+          <div class="mic-text" id="micText">버튼을 누르고 영어 단어를 말하세요.</div>
+        </div>
+        <div class="feedback" id="feedback" aria-live="polite">영어 단어 철자는 아직 보이지 않습니다.</div>
+        <button class="pass" id="passBtn" type="button">모르겠어요 · 패스</button>
+      </div>
+
+      <div id="spellArea" class="spell hidden">
+        <div class="word-heard">
+          <div class="ok">✓ 음성인식 성공</div><br>
+          <button class="speaker" id="speakBtn" type="button">🔊 정답 발음 다시 듣기</button>
+        </div>
+
+        <div class="stage">철자를 순서대로 눌러 완성하세요.</div>
+        <div class="slots" id="slots"></div>
+        <div class="bank" id="bank"></div>
+
+        <div class="edit-row">
+          <button id="undoBtn" type="button">← 한 글자 지우기</button>
+          <button id="resetBtn" type="button">전체 지우기</button>
+        </div>
+
+        <div class="feedback" id="spellFeedback">들은 단어의 철자를 만들어 보세요.</div>
+
+        <div id="answerBox" class="answer hidden">
+          <div class="answer-word" id="answerWord"></div>
+          <div class="answer-meaning" id="answerMeaning"></div>
+          <button class="next" id="nextBtn" type="button">다음 단어 →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="finish" class="card finish hidden">
+    <h2>모든 단어 완료! 🎉</h2>
+    <div class="bigscore" id="finishCount">0</div>
+    <div class="summary" id="finishSummary"></div>
+    <div id="reviewWrap"></div>
+    <button class="primary" id="againBtn" type="button">같은 범위 다시 하기</button>
+    <button class="pass" id="changeBtn" type="button">범위 바꾸기</button>
+  </section>
+</div>
+
+<div id="countdown" class="countdown hidden"></div>
+
+<script>
+const WORDS = [
+{set:46,word:"a",meaning:"하나의"},{set:46,word:"about",meaning:"약"},{set:46,word:"across",meaning:"건너서"},
+{set:46,word:"act",meaning:"행동하다"},{set:46,word:"actor",meaning:"배우"},{set:46,word:"address",meaning:"주소"},
+{set:46,word:"afraid",meaning:"두려워하는"},{set:46,word:"after",meaning:"~후에"},{set:46,word:"afternoon",meaning:"오후"},
+{set:46,word:"again",meaning:"다시"},{set:46,word:"age",meaning:"나이"},{set:46,word:"air",meaning:"공기"},
+
+{set:47,word:"airplane",meaning:"비행기"},{set:47,word:"airport",meaning:"공항"},{set:47,word:"album",meaning:"앨범"},
+{set:47,word:"all",meaning:"모든"},{set:47,word:"along",meaning:"~을 따라서"},{set:47,word:"always",meaning:"항상"},
+{set:47,word:"among",meaning:"~의 사이에"},{set:47,word:"an",meaning:"하나의"},{set:47,word:"and",meaning:"그리고"},
+{set:47,word:"angry",meaning:"성난"},{set:47,word:"animal",meaning:"동물"},{set:47,word:"answer",meaning:"대답하다"},
+
+{set:48,word:"any",meaning:"어떤"},{set:48,word:"apartment",meaning:"아파트"},{set:48,word:"apple",meaning:"사과"},
+{set:48,word:"arm",meaning:"팔"},{set:48,word:"around",meaning:"주위에"},{set:48,word:"arrive",meaning:"도착하다"},
+{set:48,word:"as",meaning:"~같이"},{set:48,word:"ask",meaning:"물어보다"},{set:48,word:"at",meaning:"~에서"},
+{set:48,word:"aunt",meaning:"이모"},{set:48,word:"autumn",meaning:"가을"},{set:48,word:"away",meaning:"떨어져"},
+
+{set:49,word:"baby",meaning:"아기"},{set:49,word:"back",meaning:"뒤"},{set:49,word:"bad",meaning:"나쁜"},
+{set:49,word:"bag",meaning:"가방"},{set:49,word:"balloon",meaning:"풍선"},{set:49,word:"banana",meaning:"바나나"},
+{set:49,word:"band",meaning:"밴드"},{set:49,word:"bank",meaning:"은행"},{set:49,word:"base",meaning:"기초"},
+{set:49,word:"basket",meaning:"바구니"},{set:49,word:"bath",meaning:"목욕"},{set:49,word:"be",meaning:"있다"},
+
+{set:50,word:"beach",meaning:"바닷가"},{set:50,word:"bear",meaning:"곰"},{set:50,word:"beautiful",meaning:"아름다운"},
+{set:50,word:"because",meaning:"때문에"},{set:50,word:"become",meaning:"되다"},{set:50,word:"bed",meaning:"침대"},
+{set:50,word:"before",meaning:"전에"},{set:50,word:"begin",meaning:"시작하다"},{set:50,word:"behind",meaning:"뒤에"},
+{set:50,word:"bell",meaning:"벨"},{set:50,word:"below",meaning:"이하"},{set:50,word:"bench",meaning:"벤치"},
+
+{set:51,word:"beside",meaning:"~옆에"},{set:51,word:"between",meaning:"~사이에"},{set:51,word:"bicycle",meaning:"자전거"},
+{set:51,word:"big",meaning:"큰"},{set:51,word:"birthday",meaning:"생일"},{set:51,word:"black",meaning:"검정"},
+{set:51,word:"blow",meaning:"불다"},{set:51,word:"blue",meaning:"푸른"},{set:51,word:"board",meaning:"판"},
+{set:51,word:"boat",meaning:"보트"},{set:51,word:"body",meaning:"몸"},{set:51,word:"book",meaning:"책"},
+
+{set:52,word:"bottle",meaning:"병"},{set:52,word:"bowl",meaning:"그릇"},{set:52,word:"box",meaning:"상자"},
+{set:52,word:"boy",meaning:"소년"},{set:52,word:"bread",meaning:"빵"},{set:52,word:"break",meaning:"깨다"},
+{set:52,word:"breakfast",meaning:"아침밥"},{set:52,word:"bridge",meaning:"다리"},{set:52,word:"blank",meaning:"빈칸"},
+{set:52,word:"bright",meaning:"밝은"},{set:52,word:"bring",meaning:"가져오다"},{set:52,word:"brother",meaning:"형제"},
+
+{set:53,word:"brown",meaning:"갈색"},{set:53,word:"brush",meaning:"솔"},{set:53,word:"build",meaning:"짓다"},
+{set:53,word:"burn",meaning:"타다"},{set:53,word:"burnt",meaning:"탄"},{set:53,word:"bus",meaning:"버스"},
+{set:53,word:"busy",meaning:"바쁜"},{set:53,word:"but",meaning:"그러나"},{set:53,word:"butter",meaning:"버터"},
+{set:53,word:"button",meaning:"단추"},{set:53,word:"buy",meaning:"사다"},{set:53,word:"by",meaning:"~에 의해서"},
+
+{set:54,word:"bye",meaning:"안녕"},{set:54,word:"cake",meaning:"케이크"},{set:54,word:"calendar",meaning:"달력"},
+{set:54,word:"call",meaning:"부르다"},{set:54,word:"camera",meaning:"카메라"},{set:54,word:"camp",meaning:"캠프"},
+{set:54,word:"can",meaning:"할 수 있다"},{set:54,word:"candle",meaning:"양초"},{set:54,word:"candy",meaning:"사탕"},
+{set:54,word:"captain",meaning:"선장"},{set:54,word:"capital",meaning:"수도"},{set:54,word:"cap",meaning:"모자"},
+
+{set:55,word:"car",meaning:"차"},{set:55,word:"card",meaning:"카드"},{set:55,word:"care",meaning:"보살핌"},
+{set:55,word:"carpenter",meaning:"목수"},{set:55,word:"carry",meaning:"나르다"},{set:55,word:"cartoon",meaning:"만화"},
+{set:55,word:"case",meaning:"상자"},{set:55,word:"cassette",meaning:"카세트"},{set:55,word:"cat",meaning:"고양이"},
+{set:55,word:"catch",meaning:"잡다"},{set:55,word:"ceiling",meaning:"천장"},{set:55,word:"center",meaning:"센터"},
+
+{set:56,word:"chair",meaning:"의자"},{set:56,word:"chalk",meaning:"분필"},{set:56,word:"chance",meaning:"기회"},
+{set:56,word:"cheap",meaning:"싼"},{set:56,word:"cheese",meaning:"치즈"},{set:56,word:"chicken",meaning:"치킨"},
+{set:56,word:"child",meaning:"아이"},{set:56,word:"change",meaning:"변화"},{set:56,word:"chopsticks",meaning:"젓가락"},
+{set:56,word:"church",meaning:"교회"},{set:56,word:"circle",meaning:"원"},{set:56,word:"city",meaning:"도시"},
+
+{set:57,word:"class",meaning:"수업"},{set:57,word:"classmate",meaning:"반친구"},{set:57,word:"clean",meaning:"깨끗한"},
+{set:57,word:"climb",meaning:"오르다"},{set:57,word:"clock",meaning:"시계"},{set:57,word:"close",meaning:"닫다"},
+{set:57,word:"clothes",meaning:"옷"},{set:57,word:"cloud",meaning:"구름"},{set:57,word:"club",meaning:"클럽"},
+{set:57,word:"coat",meaning:"코트"},{set:57,word:"coffee",meaning:"커피"},{set:57,word:"coin",meaning:"동전"}
+];
+
+const els = {
+  setup:document.getElementById("setup"), game:document.getElementById("game"), finish:document.getElementById("finish"),
+  homeBtn:document.getElementById("homeBtn"), rangeGrid:document.getElementById("rangeGrid"),
+  difficulty:document.getElementById("difficulty"), startBtn:document.getElementById("startBtn"),
+  meaning:document.getElementById("meaning"), stageLabel:document.getElementById("stageLabel"),
+  roundInfo:document.getElementById("roundInfo"), micBtn:document.getElementById("micBtn"),
+  micText:document.getElementById("micText"), feedback:document.getElementById("feedback"),
+  passBtn:document.getElementById("passBtn"), spellArea:document.getElementById("spellArea"),
+  slots:document.getElementById("slots"), bank:document.getElementById("bank"),
+  speakBtn:document.getElementById("speakBtn"), spellFeedback:document.getElementById("spellFeedback"),
+  answerBox:document.getElementById("answerBox"), answerWord:document.getElementById("answerWord"),
+  answerMeaning:document.getElementById("answerMeaning"), nextBtn:document.getElementById("nextBtn"),
+  doneStat:document.getElementById("doneStat"), leftStat:document.getElementById("leftStat"),
+  passStat:document.getElementById("passStat"), progressBar:document.getElementById("progressBar"),
+  finishCount:document.getElementById("finishCount"), finishSummary:document.getElementById("finishSummary"),
+  reviewWrap:document.getElementById("reviewWrap"), againBtn:document.getElementById("againBtn"),
+  changeBtn:document.getElementById("changeBtn"), countdown:document.getElementById("countdown"),
+  undoBtn:document.getElementById("undoBtn"), resetBtn:document.getElementById("resetBtn"),
+  secureNotice:document.getElementById("secureNotice")
+};
+
+for(let n=46;n<=57;n++){
+  const d=document.createElement("div"); d.className="range";
+  d.innerHTML=`<input id="r${n}" type="checkbox" value="${n}" checked><label for="r${n}">${n}</label>`;
+  els.rangeGrid.appendChild(d);
+}
+document.getElementById("allBtn").addEventListener("click",()=>els.rangeGrid.querySelectorAll("input").forEach(x=>x.checked=true));
+document.getElementById("noneBtn").addEventListener("click",()=>els.rangeGrid.querySelectorAll("input").forEach(x=>x.checked=false));
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition=null, listening=false;
+let audioCtx=null;
+
+const state={
+  ranges:[], difficulty:2, original:[], queue:[], current:null, total:0, solved:0,
+  passEvents:0, passWords:new Map(), retryRound:false, input:[], buttons:[], awaitingNext:false
+};
+
+const HOMOPHONES = [
+  ["buy","by","bye"],
+  ["bear","bare"],
+  ["be","bee"],
+  ["blue","blew"],
+  ["break","brake"]
+];
+
+function normalize(s){
+  return String(s||"").toLowerCase().trim().replace(/[^a-z']/g,"").replace(/'/g,"");
+}
+function acceptedFor(word, transcript){
+  const w=normalize(word), t=normalize(transcript);
+  if(t===w) return true;
+  for(const group of HOMOPHONES){
+    if(group.includes(w) && group.includes(t)) return true;
+  }
+  if(w==="a" && ["a","ay","uh"].includes(t)) return true;
+  return false;
+}
+
+function selectedRanges(){
+  return [...els.rangeGrid.querySelectorAll("input:checked")].map(x=>Number(x.value));
+}
+
+els.startBtn.addEventListener("click",async()=>{
+  const ranges=selectedRanges();
+  if(!ranges.length){alert("범위를 한 개 이상 선택해 주세요.");return;}
+  state.ranges=ranges;
+  state.difficulty=Number(els.difficulty.value);
+  await beginGame();
+});
+els.againBtn.addEventListener("click",beginGame);
+els.changeBtn.addEventListener("click",showSetup);
+els.homeBtn.addEventListener("click",showSetup);
+els.passBtn.addEventListener("click",passWord);
+els.speakBtn.addEventListener("click",()=>speak(state.current.word));
+els.nextBtn.addEventListener("click",nextWord);
+els.undoBtn.addEventListener("click",undoLetter);
+els.resetBtn.addEventListener("click",resetLetters);
+els.micBtn.addEventListener("click",startListening);
+
+if(location.protocol==="https:" || location.hostname==="localhost"){
+  els.secureNotice.classList.add("hidden");
+}
+
+async function beginGame(){
+  stopRecognition();
+  state.original=shuffle(WORDS.filter(w=>state.ranges.includes(w.set)).map(w=>({...w})));
+  state.queue=[...state.original];
+  state.total=state.original.length;
+  state.solved=0;
+  state.passEvents=0;
+  state.passWords=new Map();
+  state.retryRound=false;
+  state.awaitingNext=false;
+
+  els.setup.classList.add("hidden");
+  els.finish.classList.add("hidden");
+  els.game.classList.add("hidden");
+  els.homeBtn.classList.remove("hidden");
+  await runCountdown();
+  els.game.classList.remove("hidden");
+  loadNext();
+}
+
+function showSetup(){
+  stopRecognition();
+  if("speechSynthesis" in window) speechSynthesis.cancel();
+  els.game.classList.add("hidden");
+  els.finish.classList.add("hidden");
+  els.setup.classList.remove("hidden");
+  els.homeBtn.classList.add("hidden");
+}
+
+function runCountdown(){
+  return new Promise(resolve=>{
+    els.countdown.classList.remove("hidden");
+    let n=3; els.countdown.textContent=n; tone("start");
+    const id=setInterval(()=>{
+      n--;
+      if(n>0){els.countdown.textContent=n;tone("tick");}
+      else{
+        clearInterval(id);els.countdown.textContent="GO!";tone("go");
+        setTimeout(()=>{els.countdown.classList.add("hidden");resolve();},500);
+      }
+    },700);
+  });
+}
+
+function loadNext(){
+  stopRecognition();
+  state.awaitingNext=false;
+  if(state.queue.length===0){finishGame();return;}
+
+  state.current=state.queue.shift();
+  state.input=[]; state.buttons=[];
+
+  els.meaning.textContent=state.current.meaning;
+  els.stageLabel.textContent="뜻을 보고 영어 단어를 말해 보세요.";
+  els.roundInfo.textContent=state.retryRound ? "패스했던 단어 다시 풀기" : `단어장 ${state.current.set}`;
+  els.micBtn.disabled=false;
+  els.micBtn.classList.remove("listening");
+  els.micText.textContent=SpeechRecognition ? "버튼을 누르고 영어 단어를 말하세요." : "이 브라우저는 음성인식을 지원하지 않습니다.";
+  els.feedback.className="feedback";
+  els.feedback.textContent="영어 단어 철자는 아직 보이지 않습니다.";
+  els.passBtn.disabled=false;
+  els.spellArea.classList.add("hidden");
+  els.answerBox.classList.add("hidden");
+  updateStats();
+}
+
+function startListening(){
+  if(!SpeechRecognition){
+    els.feedback.className="feedback warn";
+    els.feedback.textContent="이 브라우저에서는 음성인식을 사용할 수 없습니다. Chrome 계열 브라우저에서 다시 열어 주세요.";
+    return;
+  }
+  if(listening){stopRecognition();return;}
+
+  recognition=new SpeechRecognition();
+  recognition.lang="en-US";
+  recognition.interimResults=false;
+  recognition.maxAlternatives=5;
+  recognition.continuous=false;
+
+  recognition.onstart=()=>{
+    listening=true;
+    els.micBtn.classList.add("listening");
+    els.micText.textContent="듣고 있어요… 영어 단어를 말하세요.";
+    els.feedback.className="feedback";
+    els.feedback.textContent="🎙️ 말하는 중…";
+  };
+
+  recognition.onresult=(event)=>{
+    const result=event.results[0];
+    const candidates=[];
+    for(let i=0;i<result.length;i++) candidates.push(result[i].transcript);
+    const matched=candidates.some(t=>acceptedFor(state.current.word,t));
+    const heard=candidates[0] || "";
+    if(matched){
+      voiceSuccess();
+    }else{
+      tone("wrong");
+      els.feedback.className="feedback bad";
+      els.feedback.textContent=heard ? `“${heard}”로 들렸어요. 다시 말해 보세요.` : "잘 듣지 못했어요. 다시 말해 보세요.";
+    }
+  };
+
+  recognition.onerror=(event)=>{
+    const msg = event.error==="not-allowed" ? "마이크 권한이 필요합니다. 브라우저의 마이크 권한을 허용해 주세요."
+      : event.error==="no-speech" ? "목소리가 들리지 않았어요. 다시 눌러 말해 보세요."
+      : "음성인식에 실패했어요. 다시 시도해 주세요.";
+    els.feedback.className="feedback warn";
+    els.feedback.textContent=msg;
+  };
+
+  recognition.onend=()=>{
+    listening=false;
+    els.micBtn.classList.remove("listening");
+    els.micText.textContent="버튼을 누르고 영어 단어를 말하세요.";
+  };
+
+  try{recognition.start();}
+  catch(e){
+    els.feedback.className="feedback warn";
+    els.feedback.textContent="잠시 후 다시 마이크 버튼을 눌러 주세요.";
+  }
+}
+
+function stopRecognition(){
+  if(recognition){
+    try{recognition.abort();}catch(e){}
+  }
+  recognition=null; listening=false;
+  if(els.micBtn) els.micBtn.classList.remove("listening");
+}
+
+function voiceSuccess(){
+  stopRecognition();
+  tone("correct");
+  els.feedback.className="feedback good";
+  els.feedback.textContent="맞게 말했어요! 이제 철자를 맞춰 보세요.";
+  els.micBtn.disabled=true;
+  els.passBtn.disabled=true;
+  els.stageLabel.textContent="좋아요! 이제 철자를 순서대로 누르세요.";
+  speak(state.current.word);
+  showSpelling();
+}
+
+function showSpelling(){
+  const word=state.current.word.toLowerCase();
+  const chars=makeLetterBank(word,state.difficulty);
+  state.buttons=chars.map((ch,i)=>({id:i,ch,used:false}));
+
+  els.slots.innerHTML=word.split("").map(()=>'<div class="slot"></div>').join("");
+  els.bank.innerHTML="";
+  state.buttons.forEach(b=>{
+    const btn=document.createElement("button");
+    btn.type="button"; btn.className="letter"; btn.textContent=b.ch; btn.dataset.id=b.id;
+    btn.addEventListener("click",()=>chooseLetter(b.id,btn));
+    els.bank.appendChild(btn);
+  });
+  els.spellFeedback.className="feedback";
+  els.spellFeedback.textContent="들은 단어의 철자를 만들어 보세요.";
+  els.spellArea.classList.remove("hidden");
+  setTimeout(()=>els.spellArea.scrollIntoView({behavior:"smooth",block:"nearest"}),80);
+}
+
+function chooseLetter(id,el){
+  if(state.awaitingNext) return;
+  const b=state.buttons.find(x=>x.id===id);
+  if(!b || b.used) return;
+  const expected=state.current.word[state.input.length].toLowerCase();
+  if(b.ch===expected){
+    b.used=true; state.input.push({ch:b.ch,id});
+    el.classList.add("used"); updateSlots(); tone("tap");
+    if(state.input.length===state.current.word.length) spellingSuccess();
+  }else{
+    tone("wrong");
+    el.classList.add("wrong");
+    els.spellFeedback.className="feedback bad";
+    els.spellFeedback.textContent="다른 철자예요. 다시 생각해 보세요.";
+    setTimeout(()=>el.classList.remove("wrong"),300);
+  }
+}
+
+function updateSlots(){
+  const slots=[...els.slots.children];
+  slots.forEach((s,i)=>{
+    const item=state.input[i];
+    s.textContent=item?item.ch:"";
+    s.classList.toggle("on",!!item);
+  });
+}
+
+function undoLetter(){
+  if(state.awaitingNext || !state.input.length)return;
+  const last=state.input.pop();
+  const b=state.buttons.find(x=>x.id===last.id); if(b)b.used=false;
+  const el=els.bank.querySelector(`[data-id="${last.id}"]`); if(el)el.classList.remove("used");
+  updateSlots();
+}
+function resetLetters(){
+  if(state.awaitingNext)return;
+  state.input=[];state.buttons.forEach(b=>b.used=false);
+  [...els.bank.children].forEach(x=>x.classList.remove("used","wrong"));
+  updateSlots();
+}
+
+function spellingSuccess(){
+  state.awaitingNext=true;
+  state.solved++;
+  tone("finish");
+  els.spellFeedback.className="feedback good";
+  els.spellFeedback.textContent="철자까지 완성했어요!";
+  els.answerWord.textContent=state.current.word;
+  els.answerMeaning.textContent=state.current.meaning;
+  els.answerBox.classList.remove("hidden");
+  speak(state.current.word);
+  updateStats();
+  setTimeout(()=>els.answerBox.scrollIntoView({behavior:"smooth",block:"nearest"}),80);
+}
+
+function nextWord(){ if(state.awaitingNext) loadNext(); }
+
+function passWord(){
+  stopRecognition();
+  state.passEvents++;
+  const key=state.current.word;
+  const rec=state.passWords.get(key)||{word:state.current.word,meaning:state.current.meaning,count:0};
+  rec.count++; state.passWords.set(key,rec);
+  state.queue.push({...state.current, retry:true});
+  state.retryRound=true;
+  tone("pass");
+  loadNext();
+}
+
+function updateStats(){
+  els.doneStat.textContent=state.solved;
+  els.leftStat.textContent=state.total-state.solved;
+  els.passStat.textContent=state.passEvents;
+  els.progressBar.style.width=state.total?`${(state.solved/state.total)*100}%`:"0%";
+}
+
+function finishGame(){
+  stopRecognition();
+  els.game.classList.add("hidden");
+  els.finish.classList.remove("hidden");
+  els.finishCount.textContent=`${state.solved}개`;
+  els.finishSummary.innerHTML=`선택한 범위의 <b>${state.total}개 단어를 모두 완료</b>했습니다.<br>패스 버튼을 누른 횟수는 ${state.passEvents}회입니다.`;
+  const list=[...state.passWords.values()].sort((a,b)=>b.count-a.count);
+  if(list.length){
+    els.reviewWrap.innerHTML=`<div class="review-title">처음에 어려웠던 단어</div>`+
+      list.map(x=>`<div class="review-item"><b>${escapeHtml(x.word)} · ${escapeHtml(x.meaning)}</b><span>패스 ${x.count}회</span></div>`).join("");
+  }else{
+    els.reviewWrap.innerHTML=`<div class="feedback good" style="margin-top:16px">패스 없이 모두 풀었어요!</div>`;
+  }
+  tone("finish");
+}
+
+function makeLetterBank(word,difficulty){
+  const letters=word.split("");
+  const extras=[0,0,1,2,3,3][difficulty]||0;
+  const target=new Set(letters);
+  const alphabet="abcdefghijklmnopqrstuvwxyz".split("");
+  const confuse={
+    a:["e","i","o","u"],e:["a","i","o"],i:["e","y","a"],o:["a","u","e"],u:["o","a","e"],
+    b:["d","p","q"],d:["b","p","t"],p:["b","q","d"],q:["p","b","g"],c:["k","s","g"],
+    k:["c","g","q"],g:["j","k","q"],j:["g","y"],f:["v","p"],v:["f","b"],t:["d","p"],
+    m:["n","w"],n:["m","r"],l:["r","i"],r:["l","n"],s:["c","z"],z:["s","x"],y:["i","j"],w:["m","v"]
+  };
+  const candidates=[];
+  if(difficulty===5){
+    for(const ch of target)(confuse[ch]||[]).forEach(x=>{if(!target.has(x)&&!candidates.includes(x))candidates.push(x)});
+  }
+  alphabet.forEach(x=>{if(!target.has(x)&&!candidates.includes(x))candidates.push(x)});
+  shuffle(candidates);
+  for(let i=0;i<extras&&i<candidates.length;i++)letters.push(candidates[i]);
+  return shuffle(letters);
+}
+
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+  return a;
+}
+
+function speak(text){
+  if(!("speechSynthesis" in window))return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang="en-US";u.rate=.82;u.pitch=1;
+  const voices=speechSynthesis.getVoices();
+  u.voice=voices.find(v=>/Google US English|Samantha|Microsoft.*(Aria|Jenny|Zira)/i.test(v.name))
+    ||voices.find(v=>/^en-US/i.test(v.lang))||voices.find(v=>/^en/i.test(v.lang))||null;
+  speechSynthesis.speak(u);
+}
+
+function ctx(){
+  if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==="suspended")audioCtx.resume();
+  return audioCtx;
+}
+function tone(type){
+  try{
+    const c=ctx(), now=c.currentTime;
+    const seq={
+      start:[[440,.09]],tick:[[520,.07]],go:[[659,.08],[784,.08],[988,.16]],
+      tap:[[720,.045]],correct:[[660,.07],[880,.12]],wrong:[[210,.12],[160,.15]],
+      pass:[[330,.08],[280,.09]],finish:[[523,.08],[659,.08],[784,.08],[1047,.22]]
+    }[type]||[[440,.06]];
+    let t=now;
+    seq.forEach(([f,d])=>{
+      const o=c.createOscillator(),g=c.createGain();o.type="sine";o.frequency.value=f;
+      g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.07,t+.01);
+      g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(c.destination);o.start(t);o.stop(t+d+.02);t+=d*.9;
+    });
+  }catch(e){}
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+if("speechSynthesis" in window){speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices();}
+</script>
+</body>
+</html>
