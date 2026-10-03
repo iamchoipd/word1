@@ -395,13 +395,43 @@ function normalize(s){
 function spellingWord(s){
   return normalize(s);
 }
-function acceptedFor(word, transcript){
-  const w=normalize(word), t=normalize(transcript);
-  if(t===w) return true;
-  for(const group of HOMOPHONES){
-    if(group.includes(w) && group.includes(t)) return true;
+function levenshtein(a,b){
+  const m=a.length,n=b.length;
+  const dp=Array.from({length:m+1},()=>Array(n+1).fill(0));
+  for(let i=0;i<=m;i++) dp[i][0]=i;
+  for(let j=0;j<=n;j++) dp[0][j]=j;
+  for(let i=1;i<=m;i++){
+    for(let j=1;j<=n;j++){
+      const cost=a[i-1]===b[j-1]?0:1;
+      dp[i][j]=Math.min(dp[i-1][j]+1,dp[i][j-1]+1,dp[i-1][j-1]+cost);
+    }
   }
+  return dp[m][n];
+}
+
+function acceptedFor(word, transcript){
+  const w=normalize(word);
+  const raw=String(transcript||"").toLowerCase().trim();
+  const t=normalize(raw);
+
+  if(t===w) return true;
+
+  const tokens=raw.replace(/[^a-z'\s]/g," ").split(/\s+/).filter(Boolean).map(normalize);
+  if(tokens.includes(w)) return true;
+
+  for(const group of HOMOPHONES){
+    if(group.includes(w) && (group.includes(t) || tokens.some(x=>group.includes(x)))) return true;
+  }
+
   if(w==="a" && ["a","ay","uh"].includes(t)) return true;
+
+  const candidates=[t,...tokens].filter(Boolean);
+  for(const c of candidates){
+    const d=levenshtein(w,c);
+    if(w.length>=4 && w.length<=6 && c.length>=3 && w[0]===c[0] && d<=1) return true;
+    if(w.length>=7 && c.length>=5 && w[0]===c[0] && d<=2) return true;
+  }
+
   return false;
 }
 
@@ -512,7 +542,7 @@ function startListening(){
   recognition=new SpeechRecognition();
   recognition.lang="en-US";
   recognition.interimResults=false;
-  recognition.maxAlternatives=5;
+  recognition.maxAlternatives=10;
   recognition.continuous=false;
 
   recognition.onstart=()=>{
@@ -534,7 +564,7 @@ function startListening(){
     }else{
       tone("wrong");
       els.feedback.className="feedback bad";
-      els.feedback.textContent=heard ? `“${heard}”로 들렸어요. 다시 말해 보세요.` : "잘 듣지 못했어요. 다시 말해 보세요.";
+      els.feedback.textContent=heard ? `“${heard}”로 들렸어요. 비슷하게 다시 한 번 말해 보세요.` : "잘 듣지 못했어요. 다시 말해 보세요.";
     }
   };
 
